@@ -1,3 +1,6 @@
+# 0.7.5
+- Fixed an issue with conversion of the X-Fetch-Since header into an integer value (h/t Quinton Seeger for spotting this)
+
 # 0.7.4
 - Added support for TLS (HTTPS) on a separate port.
 

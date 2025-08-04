@@ -36,7 +36,7 @@ import signal
 import uuid
 
 # Some consts
-PUBSUB_VERSION = '0.7.4'
+PUBSUB_VERSION = '0.7.5'
 PUBSUB_CONTENT_TYPE = 'application/vnd.pypubsub-stream'
 PUBSUB_DEFAULT_PORT = 2069
 PUBSUB_DEFAULT_IP = '0.0.0.0'
@@ -262,7 +262,7 @@ class Server:
                 cursor_based_backlog = request.headers.get('X-Fetch-Since-Cursor')
                 if epoch_based_backlog:  # epoch-based backlog search
                     try:
-                        backlog_ts = int(backlog)
+                        backlog_ts = int(epoch_based_backlog)
                     except ValueError:  # Default to 0 if we can't parse the epoch
                         backlog_ts = 0
                     # If max age is specified, force the TS to minimum that age

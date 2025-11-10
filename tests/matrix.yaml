@@ -1,0 +1,50 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# General server settings
+server:
+    port: 2069
+    bind: 0.0.0.0
+    max_payload_size:          102400   # Max size of each JSON payload
+
+    backlog:
+        size:           0   # Max number of payloads to keep in backlog cache (set to 0 to disable)
+        max_age:      48h   # Maximum age of a backlog item before culling it (set to 0 to never prune on age)
+    #    storage: backlog.json  # File-storage for backlog between restarts. Comment out to disable.
+
+    # Uncomment the parts below for TLS support
+    #tls:
+    #  port: 2070
+    #  cert: /path/to/domain.crt
+    #  key: /path/to/domain.key
+    #  chain: /path/to/domain.chain
+
+# Client settings
+clients:
+    # Payloaders are clients that are allowed to push events (CIDR-based)
+    payloaders:
+        - 127.0.0.1/24
+        - 10.0.0.1/24
+    # Oldschoolers denotes clients expecting binary events, such as svnwcsub
+    oldschoolers:
+        - svnwcsub
+    # Secure topics are a list of topics that may only be broadcast by certain authenticated users.
+    # Default is nil, which means all topics are allowed by anyone in the allow CIDRs
+    secure_topics: ~
+
+
+# NOTE: we cannot easily test LDAP or SQS. No config is presented.

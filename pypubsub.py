@@ -365,6 +365,12 @@ class Server:
                 loop.create_task(plugins.sqs.get_payloads(self, config))
         self.read_backlog_storage()
         loop.create_task(self.write_backlog_storage())
+
+        import plugins.ws
+        ws = plugins.ws.WebSocketWorker(self)
+        loop.create_task(ws.worker(self.config.server.ip, 2071),
+                         name='WS:worker')  ### fix port
+
         await self.poll()
 
     def run(self):

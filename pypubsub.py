@@ -34,6 +34,7 @@ import plugins.sqs
 import typing
 import signal
 import uuid
+import logging
 
 # Some consts
 PUBSUB_VERSION = '0.7.5'
@@ -508,6 +509,14 @@ class Payload:
 
 
 if __name__ == '__main__':
+    # Set up logging. INFO everybody, DEBUG self.
+    DATE_FORMAT = '%m/%d %H:%M'
+    logging.basicConfig(level=logging.INFO,
+                        style='{',
+                        format='[{asctime}|{levelname}|{module}] {message}',
+                        datefmt=DATE_FORMAT,
+                        )
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", help="Configuration file to load (default: pypubsub.yaml)", default="pypubsub.yaml")
     parser.add_argument("--acl", help="ACL Configuration file to load (default: pypubsub_acl.yaml)",

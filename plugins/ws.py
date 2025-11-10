@@ -32,7 +32,8 @@ class WebSocketWorker:
         self.pubsub = pubsub
 
         # The active connections/subscribers.
-        self.active = set()
+        # NOTE: set is more appropriate, but requires hashability.
+        self.active = [ ]
 
     async def worker(self, host: str, port: int):
         # Now that we have a loop, construct the Server
@@ -60,14 +61,18 @@ class WebSocketWorker:
         try:
             _LOGGER.info(f'NEW: subscriber {ws}')
             ### not the correct value to add, but placeholder.
-            self.active.add(request.remote)
+            self.active.append(ws)
 
             # Hold the connection open, and process incoming messages.
             async for msg in ws:
                 await self.receive(ws, msg)
 
         finally:
-            self.active.discard(request.remote)
+            try:
+                self.active.remove(ws)
+            except ValueError:
+                # Something else removed it? Meh. Keep going.
+                pass
             _LOGGER.info(f'ENDED: subscriber {ws}')
 
         ### do we need a return value?
@@ -75,7 +80,9 @@ class WebSocketWorker:
 
     async def publish(self, payload):
         ### send PAYLOAD to all qualifying active connections
-        pass
+        for ws in self.active:
+            print('WS:', ws, payload)
+            await ws.send_str(payload)
 
     async def publish_to(self, payload, who):
         ### find all active connections for WHO, and deliver PAYLOAD
@@ -89,6 +96,11 @@ class WebSocketWorker:
         if msg.type == aiohttp.WSMsgType.TEXT:
             if msg.data == 'close':
                 await ws.close()
+            elif msg.data == 'push':
+                loop = asyncio.get_running_loop()
+                def invoke_publish():
+                    loop.create_task(self.publish('pushed-data'))
+                loop.call_later(1.0, invoke_publish)
             else:
                 await ws.send_str(msg.data + '/answer')
         elif msg.type == aiohttp.WSMsgType.ERROR:

@@ -58,10 +58,12 @@ class WebSocketWorker:
         ws = aiohttp.web.WebSocketResponse()
         await ws.prepare(request)
 
+        # Subscriber to wrap this WS connection.
+        sub = WSSubscriber(ws, request.path)
+
         try:
-            _LOGGER.info(f'NEW: subscriber {ws}')
-            ### not the correct value to add, but placeholder.
-            self.active.append(ws)
+            _LOGGER.info(f'NEW: subscriber {sub}')
+            self.active.append(sub)
 
             # Hold the connection open, and process incoming messages.
             async for msg in ws:
@@ -69,20 +71,21 @@ class WebSocketWorker:
 
         finally:
             try:
-                self.active.remove(ws)
+                self.active.remove(sub)
             except ValueError:
                 # Something else removed it? Meh. Keep going.
                 pass
-            _LOGGER.info(f'ENDED: subscriber {ws}')
+            _LOGGER.info(f'ENDED: subscriber {sub}')
 
         ### do we need a return value?
         return ws
 
     async def publish(self, payload):
         ### send PAYLOAD to all qualifying active connections
-        for ws in self.active:
-            print('WS:', ws, payload)
-            await ws.send_str(payload)
+        ### for now: PAYLOAD is a simple text string.
+        for sub in self.active:
+            print('SUB:', sub, payload)
+            await sub.write(payload)
 
     async def publish_to(self, payload, who):
         ### find all active connections for WHO, and deliver PAYLOAD
@@ -100,9 +103,27 @@ class WebSocketWorker:
                 loop = asyncio.get_running_loop()
                 def invoke_publish():
                     loop.create_task(self.publish('pushed-data'))
-                loop.call_later(1.0, invoke_publish)
+                loop.call_later(2.0, invoke_publish)
             else:
                 await ws.send_str(msg.data + '/answer')
         elif msg.type == aiohttp.WSMsgType.ERROR:
             print('ws connection closed with exception %s' %
                   ws.exception())
+
+
+class WSSubscriber:
+
+    def __init__(self, ws, path):
+        self.ws = ws
+
+        self.topics = set()
+        for group in path.split(','):
+            parts = tuple(t for t in group.split('/') if t)
+            self.topics.add(parts)
+
+        # Used to ensure only one server-push at a time.
+        self.send_lock = asyncio.Lock()
+
+    async def write(self, content):
+        async with self.send_lock:
+            await self.ws.send_str(content)

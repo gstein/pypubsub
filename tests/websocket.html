@@ -58,7 +58,8 @@
         function sendMessage() {
             const msg = input.value.trim();
             if (msg && ws.readyState === WebSocket.OPEN) {
-                ws.send(msg);
+                j = JSON.stringify({'op': 'simple', 'msg': msg})
+                ws.send(j);
                 log('You: ' + msg);
                 input.value = '';
             }

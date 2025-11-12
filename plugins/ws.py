@@ -87,7 +87,7 @@ class WebSocketWorker:
         sub = WSSubscriber(ws, request.path, request.remote, self.config)
 
         try:
-            _LOGGER.info(f'NEW: subscriber {sub}')
+            _LOGGER.info(f'NEW: {sub}')
             self.active.append(sub)
 
             # Hold the connection open, and process incoming messages.
@@ -95,6 +95,7 @@ class WebSocketWorker:
                 await self.receive(sub, msg)
 
         except WebSocketCloseError as e:
+            _LOGGER.exception(e)
             await ws.close(code=e.code, message=e.message)
         finally:
             try:
@@ -102,7 +103,7 @@ class WebSocketWorker:
             except ValueError:
                 # Something else removed it? Meh. Keep going.
                 pass
-            _LOGGER.info(f'ENDED: subscriber {sub}')
+            _LOGGER.info(f'ENDED: {sub}')
 
         # Return the websocket for cleanup, logging, etc.
         return ws
@@ -184,11 +185,6 @@ class WSSubscriber:
         # Publishing is based on your IP. Not all WS connections will
         # be allowed to publish.
         self.may_publish = ip_may_publish(remote_ip, server_config)
-        ### is there a way to better identify the subscriber? IP? authn?
-        ### include the IP in this log?
-        _LOGGER.info('Subscriber may'
-                     f'{"" if self.may_publish else " NOT"}'
-                     ' publish events')
 
         # Capture the server_config's "secure topics" for consideration
         # later, on whether this Subscriber can publish to them.
@@ -202,6 +198,12 @@ class WSSubscriber:
 
         async with self.send_lock:
             await self.ws.send_str(content)
+
+    def __str__(self):
+        ### is there a way to better identify the subscriber? IP? authn?
+        ### privacy: include the IP in this representation?
+        return (f'{self.__class__.__name__}(may_publish={self.may_publish},'
+                f' topics={str(self.topics)}')
 
 
 def ip_may_publish(ip, server_config):

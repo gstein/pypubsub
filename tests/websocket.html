@@ -15,25 +15,29 @@
             background: #f9f9f9; 
             margin-bottom: 10px;
         }
-        #input { width: 80%; padding: 8px; }
-        button { padding: 8px 16px; }
+        #input, #topic { width: 35%; padding: 8px; margin-right: 5px; }
+        button { padding: 8px 16px; margin-right: 5px; }
     </style>
 </head>
 <body>
     <h1>WebSocket Client</h1>
     <div id="output"></div>
+    <input type="text" id="topic" placeholder="Topic..." autocomplete="off">
     <input type="text" id="input" placeholder="Type a message..." autocomplete="off">
     <button onclick="sendMessage()">Send</button>
+    <button id="closeBtn" onclick="toggleConnection()">Close</button>
+    <button onclick="sendPing()">Ping</button>
 
     <script>
-        // Change this to your WebSocket server URL
         const ws = new WebSocket('ws://localhost:2071');
-
         const output = document.getElementById('output');
         const input  = document.getElementById('input');
+        const topic  = document.getElementById('topic');
+        const closeBtn = document.getElementById('closeBtn');
 
         ws.onopen = () => {
             log('Connected to server');
+            closeBtn.textContent = 'Close';
         };
 
         ws.onmessage = (event) => {
@@ -42,6 +46,7 @@
 
         ws.onclose = () => {
             log('Disconnected from server');
+            closeBtn.textContent = 'Reopen';
         };
 
         ws.onerror = (error) => {
@@ -57,16 +62,38 @@
 
         function sendMessage() {
             const msg = input.value.trim();
+            const t = topic.value.trim();
             if (msg && ws.readyState === WebSocket.OPEN) {
-                j = JSON.stringify({'op': 'simple', 'msg': msg})
-                ws.send(j);
-                log('You: ' + msg);
+                const payload = JSON.stringify({'op': 'simple', 'topic': t, 'msg': msg});
+                ws.send(payload);
+                log('You: ' + payload);
                 input.value = '';
             }
         }
 
-        // Allow pressing Enter to send
+        function toggleConnection() {
+            if (ws.readyState === WebSocket.OPEN) {
+                const payload = JSON.stringify({'op': 'close'});
+                ws.send(payload);
+                log('You: ' + payload);
+            } else if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+                location.reload(); // Simple reopen by reload
+            }
+        }
+
+        function sendPing() {
+            if (ws.readyState === WebSocket.OPEN) {
+                const payload = JSON.stringify({'op': 'ping'});
+                ws.send(payload);
+                log('You: ' + payload);
+            }
+        }
+
         input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        topic.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
     </script>
